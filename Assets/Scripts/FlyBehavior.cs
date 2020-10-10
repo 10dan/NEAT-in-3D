@@ -4,11 +4,24 @@ using UnityEngine;
 
 [ExecuteInEditMode]
 public class FlyBehavior : MonoBehaviour {
-    private const float TAU = 2 * Mathf.PI;
+
+    [Header("Fly vision")]
+    [SerializeField] [Range(1, 1000)] int eyes;
+    [SerializeField] float viewDist;
+    [SerializeField] float turnFraction = 0.618033f;
+
+    public Vector3[] directions;
+    private NeuralNet brain;
+
+
+    private void Awake() {
+        int[] layers = { eyes, 20, 5 };
+        brain = new NeuralNet(layers);
+    }
 
     private void Update() {
         DrawRays();
-        ManualInputs();
+        //ManualInputs();
     }
 
     private void ManualInputs() {
@@ -34,13 +47,38 @@ public class FlyBehavior : MonoBehaviour {
     }
 
     void DrawRays() {
-        Vector3 forward = transform.TransformDirection(Vector3.forward) * 10;
-        float stepSize = TAU / 2;
-        for (float x = -TAU; x < TAU; x += stepSize) {
-            for (float y = -TAU; y < TAU; y += stepSize) {
-                Vector3 newDir = forward + new Vector3(x, y, 0);
-                Debug.DrawRay(transform.position, newDir, Color.red);
-            }
+
+        directions = new Vector3[eyes];
+
+        float goldenRatio = (1 + Mathf.Sqrt(5)) / 2;
+        float angleIncrement = Mathf.PI * 2 * goldenRatio;
+
+        for (int i = 0; i < eyes; i++) {
+            float t = (float)i / eyes;
+            float inclination = Mathf.Acos(1 - 2 * t);
+            float azimuth = angleIncrement * i;
+
+            float x = Mathf.Sin(inclination) * Mathf.Cos(azimuth);
+            float y = Mathf.Sin(inclination) * Mathf.Sin(azimuth);
+            float z = Mathf.Cos(inclination);
+            directions[i] = new Vector3(x, y, z);
+        }
+
+
+        Vector3 newDir = transform.position + (transform.rotation * new Vector3(x, y, z)) * viewDist;
+        Ray ray = new Ray(transform.position, newDir);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, viewDist)) {
+            Debug.DrawLine(ray.origin, hit.point, Color.green);
+        } else {
+            Debug.DrawRay(transform.position, newDir, Color.red);
+
         }
     }
+}
+
+float Map(float value, float from1, float to1, float from2, float to2) {
+    return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
+}
 }

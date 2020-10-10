@@ -9,6 +9,9 @@ public class MainControl : MonoBehaviour {
     [SerializeField] float arenaSize;
     [Header("Prefabs")]
     [SerializeField] GameObject flyPrefab;
+
+
+
     private void Start() {
         for (int i = 0; i < numberFlys; i++) {
             float x = UnityEngine.Random.Range(0, arenaSize);
